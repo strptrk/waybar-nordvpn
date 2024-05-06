@@ -42,6 +42,8 @@ For Waybar:
 }
 ```
 
+For changing the format, edit the `nvpn::print_status` function.
+
 You can also use other names for the script, but then the variables `NVPN_CLI`
 and `NVPN_DAEMON` should be modified in the script.
 
