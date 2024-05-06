@@ -1,4 +1,4 @@
-# Waybar Nordvpn script
+# Waybar NordVPN script
 
 Simple daemon and cli wrapper for for [NordVPN](https://nordvpn.com/) to be
 used in [Waybar](https://github.com/Alexays/Waybar) or any similar system bar.
