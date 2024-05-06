@@ -31,7 +31,6 @@ nvpn::print_status(){
 
 nvpn::cleanup(){
     rm "${PIDFILE}"
-    exit
 }
 
 main(){
