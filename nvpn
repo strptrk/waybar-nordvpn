@@ -21,12 +21,33 @@ nvpn::is_connected(){
     [[ "$(nvpn::status)" == "Connected" ]]
 }
 
-nvpn::print_status(){
-    if nvpn::is_connected; then
-        echo "󰇧 $(nvpn::country)"
+nvpn::killswitch_status(){
+   nordvpn settings | awk '/Kill Switch:/{print $3}'
+}
+
+nvpn::is_killswitch_on(){
+    [[ "$(nvpn::killswitch_status)" == "enabled" ]]
+}
+
+nvpn::toggle_killswitch(){
+    if nvpn::is_killswitch_on; then
+        nordvpn set killswitch off
     else
-        echo "󱐅"
+        nordvpn set killswitch on
     fi
+}
+
+nvpn::print_status(){
+    local status
+    if nvpn::is_connected; then
+        status="󰇧 "
+    else
+        status="󱐅"
+    fi
+    if nvpn::is_killswitch_on; then
+        status="${status}󰳌 "
+    fi
+    echo "${status}$(nvpn::country)"
 }
 
 nvpn::cleanup(){
@@ -55,6 +76,8 @@ main(){
                 else
                     nordvpn connect
                 fi
+            elif [[ "$1" == "toggle_killswitch" ]]; then
+                nvpn::toggle_killswitch
             else
                 nordvpn "$@"
             fi

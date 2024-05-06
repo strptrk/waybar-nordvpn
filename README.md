@@ -10,13 +10,18 @@ used in [Waybar](https://github.com/Alexays/Waybar) or any similar system bar.
 ```sh
 nvpn
 # or
+nvpn toggle_killswitch
+# or
 nvpn <options for nordvpn>
 ```
 
 In case the script is called _without_ arguments, the connection will be toggled
 by calling `nordvpn connect` or `nordvpn disconnect`.
 
-In case the script is called _with_ arguments, all of those will be passed through to `nordvpn`, also
+In case the script is called with `toggle_killswitch` as an argument, the
+kill-switch functionality of nordvpn will be toggled.
+
+In case the script is called _with_ arguments (except `toggle_killswitch`), all of those will be passed through to `nordvpn`, also
 triggering the update in the system bar module.
 
 ### nvpnd
@@ -37,7 +42,8 @@ For Waybar:
     "custom/nordvpn": {
         "exec": "/path/to/nvpnd",
         "exec-on-event": false,
-        "on-click": "/path/to/nvpn"
+        "on-click": "/path/to/nvpn",
+        "on-click-right": "/path/to/nvpn toggle_killswitch"
     }
 }
 ```
