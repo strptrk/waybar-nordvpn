@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+nvpn::get_pid(){
+    echo $$
+}
+
+NVPN_CLI="nvpn"
+NVPN_DAEMON="nvpnd"
+
+PIDFILE="/tmp/nvpnd_$(nvpn::get_pid).pid"
+
+nvpn::country(){
+    nordvpn status | awk '/Country:/{print $2}'
+}
+
+nvpn::status(){
+    nordvpn status | awk '/Status:/{print $4}'
+}
+
+nvpn::is_connected(){
+    [[ "$(nvpn::status)" == "Connected" ]]
+}
+
+nvpn::print_status(){
+    if nvpn::is_connected; then
+        echo "󰇧 $(nvpn::country)"
+    else
+        echo "󱐅"
+    fi
+}
+
+nvpn::cleanup(){
+    rm "${PIDFILE}"
+    exit
+}
+
+main(){
+    case "$(basename "$0")" in
+        "${NVPN_DAEMON}")
+            trap nvpn::print_status USR1
+            trap nvpn::cleanup EXIT
+            nvpn::get_pid > "${PIDFILE}"
+            chmod 600 "${PIDFILE}"
+            nvpn::print_status
+            local sleep_pid
+            sleep infinity &
+            sleep_pid="$!"
+            while :; do
+                wait "${sleep_pid}"
+            done
+            ;;
+        "${NVPN_CLI}")
+            if (( $# == 0 )); then
+                if nvpn::is_connected; then
+                    nordvpn disconnect
+                else
+                    nordvpn connect
+                fi
+            else
+                nordvpn "$@"
+            fi
+            find /tmp -name 'nvpnd_[0-9]*.pid' -exec sh -c 'f="$1"; kill -USR1 $(cat "${f}")' sh {} \; >/dev/null 2>&1
+            ;;
+       *)
+           ;;
+   esac
+}
+
+main "$@"
