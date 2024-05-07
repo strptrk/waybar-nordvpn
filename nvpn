@@ -13,8 +13,26 @@ nvpn::country(){
     nordvpn status | awk '/Country:/{gsub(/^Country:[ ]*/,""); print}'
 }
 
+nvpn::city(){
+    nordvpn status | awk '/City:/{gsub(/^City:[ ]*/,""); print}'
+}
+
 nvpn::status(){
     nordvpn status | awk '/Status:/{print $4}'
+}
+
+nvpn::received(){
+    nordvpn status | awk '
+    { if (match($0, "Transfer: (.*) received.*", result)) {
+        print result[1]
+    }}'
+}
+
+nvpn::sent(){
+    nordvpn status | awk '
+    { if (match($0, "Transfer:.*received, (.*) sent", result)) {
+        print result[1]
+    }}'
 }
 
 nvpn::is_connected(){
