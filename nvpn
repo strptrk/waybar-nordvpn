@@ -10,7 +10,7 @@ NVPN_DAEMON="nvpnd"
 PIDFILE="/tmp/nvpnd_$(nvpn::get_pid).pid"
 
 nvpn::country(){
-    nordvpn status | awk '/Country:/{print $2}'
+    nordvpn status | awk '/Country:/{gsub(/^Country:[ ]*/,""); print}'
 }
 
 nvpn::status(){
