@@ -18,7 +18,7 @@ nvpn::city(){
 }
 
 nvpn::status(){
-    nordvpn status | awk '/Status:/{print $4}'
+    nordvpn status | awk '/Status:/{print $2}'
 }
 
 nvpn::received(){
@@ -37,6 +37,12 @@ nvpn::sent(){
 
 nvpn::is_connected(){
     [[ "$(nvpn::status)" == "Connected" ]]
+}
+
+nvpn::reconnect(){
+    if nvpn::is_connected; then
+        nordvpn connect "$(nvpn::country)"
+    fi
 }
 
 nvpn::killswitch_status(){
@@ -96,6 +102,8 @@ main(){
                 fi
             elif [[ "$1" == "toggle_killswitch" ]]; then
                 nvpn::toggle_killswitch
+            elif [[ "$1" == "reconnect" ]]; then
+                nvpn::reconnect
             else
                 nordvpn "$@"
             fi

@@ -21,6 +21,9 @@ by calling `nordvpn connect` or `nordvpn disconnect`.
 In case the script is called with `toggle_killswitch` as an argument, the
 kill-switch functionality of nordvpn will be toggled.
 
+In case the script is called with `reconnect` as an argument, the connection will
+be reset, using the same country as the endpoint.
+
 In case the script is called _with_ arguments (except `toggle_killswitch`), all of those will be passed through to `nordvpn`, also
 triggering the update in the system bar module.
 
