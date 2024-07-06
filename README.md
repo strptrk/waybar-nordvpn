@@ -12,6 +12,8 @@ nvpn
 # or
 nvpn toggle_killswitch
 # or
+nvpn reconnect
+# or
 nvpn <options for nordvpn>
 ```
 
