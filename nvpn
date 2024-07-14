@@ -107,7 +107,8 @@ main(){
             else
                 nordvpn "$@"
             fi
-            find /tmp -name 'nvpnd_[0-9]*.pid' -exec sh -c 'f="$1"; kill -USR1 $(cat "${f}")' sh {} \; >/dev/null 2>&1
+            find /tmp -name 'nvpnd_[0-9]*.pid' -user "${USER}" \
+                -exec sh -c 'f="$1"; kill -USR1 $(cat "${f}")' sh {} \; >/dev/null 2>&1
             ;;
        *)
            ;;
