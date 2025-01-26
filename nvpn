@@ -1,67 +1,86 @@
 #!/usr/bin/env bash
 
-nvpn::get_pid(){
+nvpn::get_pid() {
     echo $$
 }
 
-NVPN_CLI="nvpn"
-NVPN_DAEMON="nvpnd"
+NVPN_PIDFILE_DIR="${NVPN_PIDFILE_DIR:-/tmp}"
+NVPN_CLI="${NVPN_CLI:-nvpn}"
+NVPN_DAEMON="${NVPN_DAEMON:-nvpnd}"
 
 PIDFILE="/tmp/nvpnd_$(nvpn::get_pid).pid"
 
-nvpn::country(){
-    nordvpn status | awk '/Country:/{gsub(/^Country:[ ]*/,""); print}'
+nvpn::country() {
+    nordvpn status | awk '/Country:/{ gsub(/^Country:[ ]*/,""); print }'
 }
 
-nvpn::city(){
-    nordvpn status | awk '/City:/{gsub(/^City:[ ]*/,""); print}'
+nvpn::city() {
+    nordvpn status | awk '/City:/{ gsub(/^City:[ ]*/,""); print }'
 }
 
-nvpn::status(){
-    nordvpn status | awk '/Status:/{print $2}'
+nvpn::status() {
+    nordvpn status | awk '/Status:/{ print $2 }'
 }
 
-nvpn::received(){
-    nordvpn status | awk '
-    { if (match($0, "Transfer: (.*) received.*", result)) {
-        print result[1]
-    }}'
+nvpn::received() {
+    nordvpn status | awk '{
+        if (match($0, "Transfer: (.*) received.*", result)) {
+            print result[1]
+        }
+    }'
 }
 
-nvpn::sent(){
-    nordvpn status | awk '
-    { if (match($0, "Transfer:.*received, (.*) sent", result)) {
-        print result[1]
-    }}'
+nvpn::sent() {
+    nordvpn status | awk '{
+        if (match($0, "Transfer:.*received, (.*) sent", result)) {
+            print result[1]
+        }
+    }'
 }
 
-nvpn::is_connected(){
+nvpn::is_connected() {
     [[ "$(nvpn::status)" == "Connected" ]]
 }
 
-nvpn::reconnect(){
+nvpn::reconnect() {
     if nvpn::is_connected; then
         nordvpn connect "$(nvpn::country)"
     fi
 }
 
-nvpn::killswitch_status(){
-   nordvpn settings | awk '/Kill Switch:/{print $3}'
-}
-
-nvpn::is_killswitch_on(){
-    [[ "$(nvpn::killswitch_status)" == "enabled" ]]
-}
-
-nvpn::toggle_killswitch(){
-    if nvpn::is_killswitch_on; then
-        nordvpn set killswitch off
-    else
-        nordvpn set killswitch on
+nvpn::select_country() {
+    local country
+    country="$(nordvpn countries | sed "s/'/\\\'/" | xargs -n1 | tail +3 | fzf)"
+    if [[ -n "${country}" ]]; then
+        nvpn connect "${country}"
     fi
 }
 
-nvpn::print_status(){
+nvpn::killswitch_status() {
+    nordvpn settings | awk '/Kill Switch:/{ print $3 }'
+}
+
+nvpn::is_killswitch_on() {
+    [[ "$(nvpn::killswitch_status)" == "enabled" ]]
+}
+
+nvpn::toggle_killswitch() {
+    if nvpn::is_killswitch_on; then
+        nordvpn set killswitch off
+        notify-send \
+            -i "nordvpn" \
+            "NordVPN" \
+            "Killswitch turned off."
+    else
+        nordvpn set killswitch on
+        notify-send \
+            -i "nordvpn" \
+            "NordVPN" \
+            "Killswitch turned on."
+    fi
+}
+
+nvpn::print_status() {
     local status
     if nvpn::is_connected; then
         status="󰇧 "
@@ -69,50 +88,57 @@ nvpn::print_status(){
         status="󱐅"
     fi
     if nvpn::is_killswitch_on; then
-        status="${status}󰳌 "
+        status="󰳌 ${status}"
     fi
     echo "${status}$(nvpn::country)"
 }
 
-nvpn::cleanup(){
+nvpn::cleanup() {
     rm "${PIDFILE}"
 }
 
-main(){
+main() {
     case "$(basename "$0")" in
-        "${NVPN_DAEMON}")
-            trap nvpn::print_status USR1
-            trap nvpn::cleanup EXIT
-            nvpn::get_pid > "${PIDFILE}"
-            chmod 600 "${PIDFILE}"
-            nvpn::print_status
-            local sleep_pid
-            sleep infinity &
-            sleep_pid="$!"
-            while :; do
-                wait "${sleep_pid}"
-            done
-            ;;
-        "${NVPN_CLI}")
-            if (( $# == 0 )); then
-                if nvpn::is_connected; then
-                    nordvpn disconnect
-                else
-                    nordvpn connect
-                fi
-            elif [[ "$1" == "toggle_killswitch" ]]; then
-                nvpn::toggle_killswitch
-            elif [[ "$1" == "reconnect" ]]; then
-                nvpn::reconnect
+    "${NVPN_DAEMON}")
+        trap nvpn::print_status USR1
+        trap nvpn::cleanup EXIT
+        nvpn::get_pid >"${PIDFILE}"
+        chmod 600 "${PIDFILE}"
+        nvpn::print_status
+        local sleep_pid
+        sleep infinity &
+        sleep_pid="$!"
+        while :; do
+            wait "${sleep_pid}"
+        done
+        ;;
+    "${NVPN_CLI}")
+        case "$1" in
+        "" | toggle)
+            if nvpn::is_connected; then
+                nordvpn disconnect
             else
-                nordvpn "$@"
+                nordvpn connect
             fi
-            find /tmp -name 'nvpnd_[0-9]*.pid' -user "${USER}" \
-                -exec sh -c 'f="$1"; kill -USR1 $(cat "${f}")' sh {} \; >/dev/null 2>&1
             ;;
-       *)
-           ;;
-   esac
+        toggle_killswitch | killswitch | tks | ks)
+            nvpn::toggle_killswitch
+            ;;
+        reconnect)
+            nvpn::reconnect
+            ;;
+        select | sel | fzf)
+            nvpn::select_country
+            ;;
+        *)
+            nordvpn "$@"
+            ;;
+        esac
+        find "${NVPN_PIDFILE_DIR}" -name 'nvpnd_[0-9]*.pid' -user "${USER}" \
+            -exec sh -c 'f="$1"; kill -USR1 $(cat "${f}")' sh {} \; >/dev/null 2>&1
+        ;;
+    *) ;;
+    esac
 }
 
 main "$@"
